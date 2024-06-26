@@ -1,0 +1,73 @@
+// submission-link https://leetcode.com/submissions/detail/1301319209/
+// this code presents Day–Stout–Warren algorithm (DSW) for in-place BST balance, wiki link: https://w.wiki/AVgQ
+
+#pragma GCC optimize("O3,unroll-loops")
+static const int _ = []() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    return 0;
+}();
+class Solution {
+    // this is how you can declare type of "pointer to member-function"
+    using treeRotateFn = void (Solution::*)(TreeNode*);
+
+    inline void rotateRight(TreeNode* root) {
+        TreeNode* child = root->right;
+        TreeNode* tmp = child->left;
+        child->left = child->left->right;
+        tmp->right = child;
+        root->right = tmp;
+    }
+
+    inline void rotateLeft(TreeNode* root) {
+        TreeNode* child = root->right;
+        TreeNode* tmp = child->right;
+        child->right = child->right->left;
+        tmp->left = child;
+        root->right = tmp;
+    }
+
+    TreeNode* toRightVine(TreeNode* treeRoot) {;
+        treeRoot = new TreeNode(0, nullptr, treeRoot);
+        TreeNode* tmp = treeRoot;
+        while (tmp->right) {
+            if (tmp->right->left)
+                rotateRight(tmp);
+            else
+                tmp = tmp->right;
+        }
+        return treeRoot;
+    }
+
+    int calcVineLength(TreeNode* root) {
+        int cnt = 0;
+        while (root && ++cnt)
+            root = root->right ? root->right : root->left;
+        return cnt;
+    }
+
+    inline TreeNode* rotateN(treeRotateFn rotateDir, TreeNode* tmp, int cnt) {
+        while (cnt--) {
+            (this->*rotateDir)(tmp);
+            tmp = tmp->right;
+        }
+        return tmp;
+    }
+
+public:
+    TreeNode* balanceBST(TreeNode* treeRoot) {
+        TreeNode* vineRoot = toRightVine(treeRoot);
+        int nodeCnt = calcVineLength(vineRoot->right);
+        // int leafCnt = nodeCnt + 1 - pow2((int)log2(nodeCnt + 1));
+        int leafCnt = nodeCnt + 1 - (1 << (31 - __builtin_clz(nodeCnt + 1)));
+        nodeCnt -= leafCnt;
+        auto tmp = vineRoot;
+        // use pointer to member-function, not best practice(?)
+        tmp = rotateN(&Solution::rotateLeft, tmp, leafCnt);
+        for (; nodeCnt; nodeCnt >>= 1) {
+            auto tmp = vineRoot;
+            tmp = rotateN(&Solution::rotateLeft, vineRoot, nodeCnt >> 1);
+        }
+        return vineRoot->right;
+    }
+};
